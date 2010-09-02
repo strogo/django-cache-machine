@@ -85,12 +85,14 @@ class Invalidator(object):
             flush_lists[key].add(query_flush)
         flush_lists[query_flush].add(query_key)
 
+        """
         # Add each object to the flush lists of its foreign keys.
         for obj in objects:
             obj_flush = obj.flush_key()
             for key in map(flush_key, obj._cache_keys()):
                 if key != obj_flush:
                     flush_lists[key].add(obj_flush)
+        """
         self.add_to_flush_list(flush_lists)
 
     def find_flush_lists(self, keys):

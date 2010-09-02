@@ -6,6 +6,7 @@ from django.core.cache import cache, parse_backend_uri
 from django.db import models
 from django.db.models import signals
 from django.db.models.sql import query
+from django.db.models.query_utils import CollectedObjects
 from django.utils import encoding
 
 from .invalidation import invalidator, flush_key, make_key
@@ -50,7 +51,14 @@ class CachingManager(models.Manager):
 
     def invalidate(self, *objects):
         """Invalidate all the flush lists associated with ``objects``."""
-        keys = [k for o in objects for k in o._cache_keys()]
+        seen_objs = CollectedObjects(None)
+        for obj in objects:
+            obj._collect_sub_objects(seen_objs)
+        keys = set()
+        for k, v in seen_objs.items():
+            for obj in v.values():
+                keys.update(k for k in obj._cache_keys())
+                keys.update(flush_key(k) for k in obj._cache_keys())
         invalidator.invalidate_keys(keys)
 
     def raw(self, raw_query, params=None, *args, **kwargs):
